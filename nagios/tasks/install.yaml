@@ -1,0 +1,49 @@
+---
+
+#
+# Listing all the yum packages in one call is doable. They are split up
+# in relation to why it was added
+# 
+- name: Install nagrestconf
+  yum: pkg=nagrestconf state=installed
+
+- name: Install nagrestconf plugins
+  yum: pkg={{item}} state=installed 
+  with_items:
+   - nagrestconf-services-tab-plugin
+   - nagrestconf-services-bulktools-plugin
+   - nagrestconf-hosts-bulktools-plugin
+   - nagrestconf-backup-plugin
+
+- name: Install nrpe support for Nagios
+  yum: pkg=nrpe state=installed
+
+- name: Install Nagios Plugins Bundle
+  yum: pkg=nagios-plugins-all state=installed
+
+- name: Install NetSNMP perl packages to support Nagios Plugins
+  yum: pkg={{item}} state=installed
+  with_items:
+   - perl-Net-SNMP
+   - net-snmp-perl
+
+- name: Install Perl modules to support SNMP Nagios Plugins
+  yum: pkg={{item}} state=installed
+  with_items:
+   - perl-LWP-Protocol-https
+   - perl-JSON
+   - perl-Time-HiRes
+
+- name: Copy COMPANY specific plugins 
+  copy: src={{ item }} dest=/usr/lib64/nagios/plugins mode=0555 backup=no
+  with_fileglob:
+    - usr/lib64/nagios/plugins/*
+
+- name: Reset README plugin permissions to read
+  file: path=/usr/lib64/nagios/plugins/README mode=0444
+
+- name: Enable Apache
+  service: name=httpd enabled=yes
+
+- name: Start Apache
+  service: name=httpd state=started

@@ -1,0 +1,32 @@
+---
+
+# 
+# Add hash for nagios and nagrestconf admin users. Visual password in the Lakana KeePass
+#
+nagiosadmin_hash: '$1$2<Linux Hash>'
+
+nagrestconfadmin_hash: '$1$2p<Linux Hash>'
+
+#
+# htpasswd auth file locations
+#
+nagios_users_htpasswd: '/etc/nagios/nagios.users'
+nagrestconf_users_htpasswd: '/etc/nagios/nagrestconf.users'
+
+#
+# Config File Locations
+#
+apache_nagios_conf: '/etc/httpd/conf.d/nagios.conf'
+apache_nagrestconf_conf: '/etc/httpd/conf.d/nagrestconf.conf'
+
+#
+# nrcq - http://nagrestconf.smorg.co.uk/documentation/resttut.php
+#nrcq_url: 'github.com/mclarkson/nrcq'
+
+# nrcq - binary download Linux 64bit
+nrcq_url: 'http://downloads.sourceforge.net/project/nagrestconf/nrcq/Linux-64bit/latest/nrcq?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fnagrestconf%2Ffiles%2Fnrcq%2FLinux-64bit%2Flatest%2F&ts=1469760470&use_mirror=heanet'
+
+#
+# nrcq binary dest path
+#
+nrcq_bin: '/usr/local/bin/nrcq'

@@ -1,0 +1,98 @@
+#!/bin/bash
+# Source function library.
+#
+# NOTE: chkconfig and LSB SysV init definitions require a 'status' definition to use
+# chkconfig and similar tools properly. Since there's no real "status" to determine easily
+# this will be done as classic non-LSB SysV init!
+# force_register # 1
+
+NAME=nagios-api
+PIDFILE=/var/run/nagios-api.pid
+
+register() {
+
+  if [ -e $PIDFILE ]; then
+    echo "Already registered with $PIDFILE"
+    exit  # No reason to re-register
+  fi
+
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} add/hosts -d name:{{ ansible_hostname }} \
+   -d alias:{{ ansible_fqdn }} \
+   -d ipaddress:{{ ansible_eth0.ipv4.address }} \
+   -d template:host-{{ localhost_environment }} \
+   -d hostgroup:hosts-{{ localhost_client }}-{{ localhost_environment }} \
+   -d contact:sagroup-workhours \
+   -d contactgroups:sa-page-workhours \
+   -d activechecks:1 \
+  {% if nagios_hostapptype_result|string() == 'TOMCAT' or nagios_hostapptype_result|string() == 'JBOSS' %}
+   -d servicesets:'COMPANY-{{ localhost_environment|upper }}-LINUX COMPANY-{{ localhost_environment|upper }}-{{ nagios_hostapptype_result }}' \
+  {%else %}
+   -d servicesets:'COMPANY-{{ localhost_environment|upper }}-LINUX' \
+   {% endif %}
+   -d disable:0
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} apply/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} check/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} restart/nagios
+
+  if [ $? = 0 ]; then
+    touch $PIDFILE
+  fi
+}
+
+deregister() {
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} delete/services -d name:{{ ansible_hostname }} -d "svcdesc:.*"
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} delete/hosts -d name:{{ ansible_hostname }}
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} apply/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} check/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} restart/nagios
+  rm -rf $PIDFILE
+}
+
+force_register() {
+
+  deregister
+
+  if [ -e $PIDFILE ]; then
+    rm -rf $PIDFILE
+  fi
+
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} add/hosts -d name:{{ ansible_hostname }} \
+   -d alias:{{ ansible_fqdn }} \
+   -d ipaddress:{{ ansible_eth0.ipv4.address }} \
+   -d template:host-{{ localhost_environment }} \
+   -d hostgroup:hosts-{{ localhost_client }}-{{ localhost_environment }} \
+   -d contact:sagroup-workhours \
+   -d contactgroups:sa-page-workhours \
+   -d activechecks:1 \
+   {% if nagios_hostapptype_result == 'TOMCAT' or nagios_hostapptype_result == 'JBOSS' %}
+    -d servicesets:'COMPANY-{{ localhost_environment|upper }}-LINUX COMPANY-{{ localhost_environment|upper }}-{{ nagios_hostapptype_result }}' \
+   {%else %}
+    -d servicesets:'COMPANY-{{ localhost_environment|upper }}-LINUX' \
+    {% endif %}
+   -d disable:0
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} apply/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} check/nagiosconfig
+  {{ nrcq_bin }} {{ company_nagrestconf_url }} restart/nagios
+
+  if [ $? = 0 ]; then
+    touch $PIDFILE
+  fi
+}
+
+### main logic ###
+case "$1" in
+  register)
+        register
+        ;;
+  deregister)
+        deregister
+        ;;
+ force_register)
+        force_register
+        ;;
+  *)
+        echo $"Usage: $0 {register|deregister|force_register}"
+        exit 1
+        ;;
+esac
+exit 0

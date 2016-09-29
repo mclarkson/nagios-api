@@ -1,0 +1,19 @@
+---
+
+#
+# Per: http://nagrestconf.smorg.co.uk/documentation/resttut.php
+#
+# Install API tools for NagRestConf
+#
+#########################################################
+#
+
+# Do we have the nrcq binary?
+- name: Does nrcq binary exist?
+  stat: path="/usr/local/bin/nrcq"
+  register: install_nrcq
+
+# If we don't have either of the above, go get the install_zip
+- name: Install /usr/local/bin/nrcq
+  get_url: url={{ nrcq_url }} dest=/usr/local/bin/nrcq mode=0555 owner=root group=bin
+  when: not install_nrcq.stat.exists

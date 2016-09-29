@@ -1,0 +1,22 @@
+These are plugins used by LAKANA not stock with the nagios-plugins package|
+---------------------------------------------------------------------------
+
+check_snmp_load.pl - https://exchange.nagios.org/directory/Plugins/Network-Protocols/SNMP/check-SNMP-CPU-Load/details
+
+check_snmp_disk.pl - https://exchange.nagios.org/directory/Plugins/Network-Protocols/SNMP/SNMP-Check-Disk/details
+
+check_snmp_mem.pl - https://exchange.nagios.org/directory/Plugins/Operating-Systems/Linux/check_snmp_mem/details
+
+check_aws_lb_instance_count.sh
+
+check_jboss7_deploy.pl
+
+check_jboss7_heap_mem.pl
+
+check_jboss7_threads.pl
+
+check_snmp_java_heap.pl
+
+check_snmp_java_threads.pl
+
+jmxquery.jar

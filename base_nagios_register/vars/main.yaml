@@ -1,0 +1,24 @@
+--
+
+#
+# nrcq - http://nagrestconf.smorg.co.uk/documentation/resttut.php
+#nrcq_url: 'github.com/mclarkson/nrcq'
+
+# nrcq - binary download Linux 64bit
+nrcq_url: 'http://downloads.sourceforge.net/project/nagrestconf/nrcq/Linux-64bit/latest/nrcq?r=https%3A%2F%2Fsourceforge.net%2Fprojects%2Fnagrestconf%2Ffiles%2Fnrcq%2FLinux-64bit%2Flatest%2F&ts=1469760470&use_mirror=heanet'
+
+#
+# nrcq binary dest path
+#
+nrcq_bin: '/usr/local/bin/nrcq'
+
+#
+# NagiosConfRestAPI Server(s)
+#
+nonprod_url: 'http://company-dev-nagios01-us-east-1a.company-dev.com/rest'
+
+prod_url: 'http://company-util-nagios01-us-east-1a.company-util.com/rest'
+
+#
+# NagiosConfRestAPI init script
+nagrestconf_api_init: '/etc/init.d/nagios-api'

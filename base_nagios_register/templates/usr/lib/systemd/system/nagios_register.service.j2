@@ -1,0 +1,13 @@
+[Unit]
+Description=Register/Deregister Host with Nagios
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/nagios-api force_register
+ExecStop=/usr/bin/nagios-api deregister
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

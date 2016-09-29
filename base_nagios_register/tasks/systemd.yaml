@@ -1,0 +1,20 @@
+---
+
+# Copy nagios-api command script
+- name: Create /usr/bin/nagios-api command script
+  template: src="usr/bin/nagios-api.j2" dest=/usr/bin/nagios-api
+    owner=root
+    mode=0555
+  notify:
+   - force_register
+
+- name: Create nagios_register SystemD service
+  template: src="usr/lib/systemd/system/nagios_register.service.j2" dest=/usr/lib/systemd/system/nagios_register.service
+    owner=root
+    mode=0555
+
+- name: Enable nagios_register (nagios-api)
+  service: name=nagios_register enabled=yes
+
+- name: Start nagios_register (nagios-api)
+  service: name=nagios_register state=started

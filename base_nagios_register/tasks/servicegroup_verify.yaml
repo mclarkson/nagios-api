@@ -1,0 +1,64 @@
+# Hostgroup is not a good way to verify this, logic needs to be rethought
+
+# Validate Host ServiceGroups if not there create
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-load Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-load"
+  register: nagios_sgrploadresults
+#- debug: var=nagios_sgrploadresults
+
+#
+# Validate Host ServiceGroups if not there create
+#
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-memory Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-memory"
+  register: nagios_sgrpmemoryresults
+#- debug: var=nagios_sgrpmemoryresults
+
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-http Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-http"
+  register: nagios_sgrphttpresults
+#- debug: var=nagios_sgrphttpresults
+
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-java Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-java"
+  register: nagios_sgrpjavaresults
+#- debug: var=nagios_sgrpjavaresults
+
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-jboss Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-jboss"
+  register: nagios_sgrpjbossresults
+#- debug: var=nagios_sgrpjbossresults
+
+- name: Does Client ServiceGroup  services-{{ localhost_client }}-{{ localhost_environment }}-tomcat Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/servicegroups -j -f name:services-{{ localhost_client }}-{{ localhost_environment }}-tomcat"
+  register: nagios_sgrptomcatresults
+#- debug: var=nagios_sgrptomcatresults
+
+#
+# Setup our two generic ServiceGroups
+#
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} LOAD Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-load -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} LOAD Services'"
+  when: nagios_sgrploadresults.stdout|from_json|length == 0
+
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} MEMORY Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-memory -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} MEMORY Services'"
+  when: nagios_sgrpmemoryresults.stdout|from_json|length == 0
+
+# Along with the above logic, now create ServiceGroups for each type of application services
+
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} HTTP Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-http -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} HTTP Services'"
+  when: nagios_sgrphttpresults.stdout|from_json|length == 0 and nagios_hostapptype_result == "TOMCAT"
+
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} JAVA Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-java -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} JAVA Services'"
+  when: nagios_sgrpjavaresults.stdout|from_json|length == 0 and nagios_hostapptype_result == "JBOSS" or nagios_hostapptype_result == "TOMCAT"
+
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} JBOSS Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-jboss -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} JBOSS Services'"
+  when: nagios_sgrpjbossresults.stdout|from_json|length == 0 and nagios_hostapptype_result == "JBOSS"
+
+- name: Creating Generic Nagios Client {{ localhost_client }} {{ localhost_environment }} TOMCAT Services ServiceGroups
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/servicegroups -j -d name:services-{{ localhost_client }}-{{ localhost_environment }}-tomcat -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }} TOMCAT Services'"
+  when: nagios_sgrptomcatresults.stdout|from_json|length == 0 and nagios_hostapptype_result == "TOMCAT"

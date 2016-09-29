@@ -1,0 +1,188 @@
+---
+
+#
+# Per: http://nagrestconf.smorg.co.uk/installguides/centos7.php
+#
+# NOTE: There are two htpasswd authfiles nagios.users and nagrestconf.users
+#       They currently contain the techops users accounts to both
+#       However, at some point non-TechOps could be given RO/dev/etc access
+#       This is why we can't use a single auth file.
+#
+#########################################################
+#
+# Disable SeLinux, yes this isn't ideal, BUT when you read on getting it work with nagios
+# you'll quickly realize it's the best option. Some reasons: bugs with SeLinux policies with
+# the nagios service state and allowing plugins were the two largest factors.
+#
+- name: Disable SeLinux
+  selinux: policy=targeted state=permissive
+
+- name: Remove default nagios template / sample files, as not to confuse the NagRestAPI Util
+  command: /bin/rm -rf /etc/nagios/objects/*.cfg
+  args:
+    removes: /etc/nagios/objects/localhost.cfg
+
+- name: Remove Sample files from /etc/nagios/nagios.cfg so config doens't check for em p1
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=absent
+              regexp='cfg_file=/etc/nagios/objects/commands.cfg'
+
+- name: Remove Sample files from /etc/nagios/nagios.cfg so config doens't check for em p2
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=absent
+              regexp='cfg_file=/etc/nagios/objects/contacts.cfg'
+
+- name: Remove Sample files from /etc/nagios/nagios.cfg so config doens't check for em p3
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=absent
+              regexp='cfg_file=/etc/nagios/objects/timeperiods.cfg'
+
+- name: Remove Sample files from /etc/nagios/nagios.cfg so config doens't check for em p4
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=absent
+              regexp='cfg_file=/etc/nagios/objects/templates.cfg'
+
+- name: Remove Sample files from /etc/nagios/nagios.cfg so config doens't check for em p5
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=absent
+              regexp='cfg_file=/etc/nagios/objects/localhost.cfg'
+
+- name: nagrestconf_install -a
+  command: /usr/bin/nagrestconf_install -a
+  args:
+    creates: /var/spool/cron/root
+
+- name: /bin/slc_configure --folder=local
+  command: /bin/slc_configure --folder=local
+  args:
+    creates: /etc/nagios/repos/local
+
+- name: Add cfg_dir=/etc/nagios/conf.d if it doesn't exist
+  lineinfile: dest=/etc/nagios/nagios.cfg
+              state=present
+              line="cfg_dir=/etc/nagios/conf.d"
+
+- name: Create default index.html page
+  template: src="var/www/html/index.html.j2" dest=/var/www/html/index.html
+    owner=apache
+    group=apache
+    mode=0644
+
+- name: Verify /var/log/nagios/rw and perms
+  file: path=/var/log/nagios/rw owner=nagios group=nagios mode=0755 state=directory
+
+- name: Allow access from 172.16.0.0/12 in {{ apache_nagrestconf_conf }}
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp='Allow from 127.0.0.1'
+    replace='Allow from 172.16.0.0/12'
+    backup=no
+
+- name: Rename /etc/nagios/passwd to /etc/nagios/nagios.users to keep auth filenames consistent
+  replace:
+    dest="{{ apache_nagios_conf }}"
+    regexp='AuthUserFile /etc/nagios/passwd'
+    replace="AuthUserFile {{ nagios_users_htpasswd }}"
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagios_conf }}
+  replace:
+    dest="{{ apache_nagios_conf }}"
+    regexp=" Require all granted"
+    replace='#Require all granted'
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagrestconf_conf }}
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp='#AuthName "REST Access"'
+    replace='AuthName "REST Access"'
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagrestconf_conf }} p2
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp='#AuthType Basic'
+    replace='AuthType Basic'
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagrestconf_conf }} p3
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp='#AuthUserFile /etc/nagios/htpasswd.users'
+    replace="AuthUserFile {{ nagrestconf_users_htpasswd }}"
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagrestconf_conf }} p4
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp='#Require valid-user'
+    replace='Require valid-user'
+    backup=no
+
+- name: Enable Authentication in {{ apache_nagrestconf_conf }} p5
+  replace:
+    dest="{{ apache_nagrestconf_conf }}"
+    regexp=' Require all granted'
+    replace='#Require all granted'
+    backup=no
+
+- name: Allow access from 172.16.0.0/12 in {{ apache_nagios_conf }}
+  replace:
+    dest="{{ apache_nagios_conf }}"
+    regexp='#  Allow from 127.0.0.1'
+    replace='   Allow From 172.16.0.0/12'
+    backup=no
+
+#
+# nagios's cgi.conf
+- name: Add all of techops to nagios cgi.cfg authorized_for_* directives
+  template: src="etc/nagios/cgi.cfg.j2" dest=/etc/nagios/cgi.cfg
+    owner=apache
+    group=nagios
+    mode=0644
+
+#
+# Nagios cgi hack to remove last , on the techop user list
+#
+- name: Nagios cgi hack to remove last comma on the techop user list string
+  replace:
+    dest='/etc/nagios/cgi.cfg'
+    regexp=',*$'
+    replace=' '
+    backup=no
+
+- name: Remove the default nagrestconf cron entry per the doco
+  lineinfile: dest=/var/spool/cron/root
+              state=absent
+              regexp='restart_nagios'
+
+- name: Creates NagRestConfAPI Cron Script to check for changes for a nagios restart
+  cron: minute="*" hour="*" weekday="*"
+        name="NagRestConf Crontab nagios restarter API handler script"
+        cron_file="nagrestconf"
+        user="root"
+        state="present"
+        job='/usr/bin/nsenter -t $(ps ax -o ppid,comm,pid | sed -n "s/^ *1 *httpd *\([0-9]*\)/\1/p") -m /usr/bin/restart_nagios_centos7'
+
+- name: Create nagios restarter file
+  file:
+    path=/usr/bin/restart_nagios_centos7
+    owner=root
+    group=bin
+    mode=0555
+    state=touch
+
+- name: Populate nagios restarter file
+  lineinfile:
+    dest=/usr/bin/restart_nagios_centos7
+    state=present
+    line='/usr/bin/test -e /tmp/nagios_restart_request && ( /bin/rm /tmp/nagios_restart_request; /usr/bin/restart_nagios; )'
+
+- name: Create nagios init wrapper
+  shell: echo -e '#!/bin/bash\nsystemctl -o verbose $1 nagios.service' >/etc/init.d/nagios; chmod +x /etc/init.d/nagios
+  args:
+    creates: /etc/init.d/nagios
+  notify:
+   - restart-crond
+   - restart-httpd

@@ -1,0 +1,38 @@
+---
+
+- name: Replace existing nagiosadmin value with our own into {{ nagios_users_htpasswd }}
+  lineinfile:
+    dest={{ nagios_users_htpasswd }}
+    line="nagiosadmin:{{ nagiosadmin_hash }}"
+    regexp="nagiosadmin*"
+    owner=root
+    group=apache
+    state=present
+    mode=0640
+    create=True
+
+- name: Remove blank lines in {{ nagios_users_htpasswd }}
+  lineinfile:
+    dest={{ nagios_users_htpasswd }}
+    regexp="^$"
+    state=absent
+    owner=root
+    group=apache
+
+- name: Add nagrestconfadmin to {{ nagrestconf_users_htpasswd }}
+  lineinfile:
+    dest={{ nagrestconf_users_htpasswd }}
+    line="nagrestconfadmin:{{ nagrestconfadmin_hash }}"
+    owner=root
+    group=apache
+    state=present
+    mode=0640
+    create=True
+
+- name: Remove blank lines in {{ nagrestconf_users_htpasswd }}
+  lineinfile:
+    dest={{ nagrestconf_users_htpasswd }}
+    regexp="^$"
+    state=absent
+    owner=root
+    group=apache

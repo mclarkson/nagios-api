@@ -1,0 +1,84 @@
+---
+
+#
+# Discover localhost facts for; client, environment, and system_type
+# file: /etc/ansible/facts.d/cloudformation.fact
+#
+- set_fact:
+    localhost_client: "{{ ansible_local.cloudformation.facts.client }}"
+
+- set_fact:
+    localhost_environment: "{{ ansible_local.cloudformation.facts.environment }}"
+
+- set_fact:
+    localhost_system_type: "{{ ansible_local.cloudformation.facts.system_type }}"
+
+- set_fact:
+     nagios_hostenvtype_result: 'NON_PROD'
+  when: localhost_environment != "util" or localhost_environment != "prod" 
+#- debug: var=nagios_hostenvtype_result
+
+- set_fact:
+     nagios_hostenvtype_result: 'PROD'
+  when: localhost_environment == "util" or localhost_environment == "prod" 
+#- debug: var=nagios_hostenvtype_result
+
+- set_fact:
+    company_nagrestconf_url: "{{ company_nagrestconf_nonprod_url }}"
+  when: nagios_hostenvtype_result == "NON_PROD"
+#- debug: var=company_nagrestconf_url
+
+- set_fact:
+    company_nagrestconf_url: "{{ company_nagrestconf_prod_url }}"
+  when: nagios_hostenvtype_result == "PROD"
+#- debug: var=company_nagrestconf_url
+
+#
+# Check client-env hostgroup in nagios
+#
+# When invalid / non-existing the JSON output is:
+# "stdout": "[\n]"
+#
+- name: Does Client Hostgroup Exist (exporting json)
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} show/hostgroups -j -f name:hosts-{{ localhost_client }}-{{ localhost_environment }}"
+  register: nagios_hgrpresults
+#- debug: var=nagios_hgrpresults
+
+- name: Creating new Nagios HostGroup {{ localhost_client|upper }}-{{ localhost_environment|upper }}
+  #command: "echo create-host-group-{{ localhost_client }}-{{ localhost_environment }}"
+  command: "{{ nrcq_bin }} {{ company_nagrestconf_url }} add/hostgroups -j -d name:hosts-{{ localhost_client }}-{{ localhost_environment }} -d alias:'{{ localhost_client|upper }} {{ localhost_environment|upper }}'"
+  register: api_naghgrp_creation
+  when: nagios_hgrpresults.stdout|from_json|length == 0
+#- debug: var=api_naghgrp_creation
+
+# Create facts from defined nagios_hgrpresults IF actual data exists in nagios_hgrpresults
+#
+- set_fact:
+    nagios_hostgroup_results: "{{ nagios_hgrpresults.stdout|from_json }}"
+  when: nagios_hgrpresults.stdout|from_json|length > 0
+#- debug: var=nagios_hostgroup_results
+
+- set_fact:
+    nagios_hostgroup_name_result: "{{ (nagios_hgrpresults.stdout|from_json)[0]['name'] }}"
+  when: nagios_hgrpresults.stdout|from_json|length > 0
+#- debug: var=nagios_hostgroup_name_result
+
+- set_fact:
+    nagios_hostgroup_alias_result: "{{ (nagios_hgrpresults.stdout|from_json)[0]['alias'] }}"
+  when: nagios_hgrpresults.stdout|from_json|length > 0
+#- debug: var=nagios_hostgroup_alias_result
+
+- set_fact:
+    nagios_hostapptype_result: 'TOMCAT'
+  when: localhost_system_type == "web"
+#- debug: var=nagios_hostapptype_result
+
+- set_fact:
+    nagios_hostapptype_result: 'JBOSS'
+  when: localhost_system_type == "feed"
+#- debug: var=nagios_hostapptype_result
+
+- set_fact:
+    nagios_hostapptype_result: 'LINUX'
+  when: localhost_system_type != "web" and localhost_system_type != "feed"
+#- debug: var=nagios_hostapptype_result

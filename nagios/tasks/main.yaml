@@ -1,0 +1,11 @@
+---
+
+- include: install.yaml
+
+- include: config_os.yaml
+
+- include: devops_users.yaml
+
+- include: admin_users.yaml
+
+- include: api_utils.yaml

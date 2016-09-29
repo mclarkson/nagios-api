@@ -1,0 +1,4 @@
+---
+
+- name: force_register
+  command: "/usr/bin/nagios-api force_register"

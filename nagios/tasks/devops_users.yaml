@@ -1,0 +1,18 @@
+---
+#
+# Add DevOps accounts to the nagios and nagrestconf passwd files.
+# Always check and remove empty lines
+#
+- name: Add DevOps staff to nagios passwd file {{ nagios_users_htpasswd }}
+  template: src="etc/nagios/htpasswd.j2" dest={{ nagios_users_htpasswd }}
+  with_dict: "{{ users_list }}"
+
+- name: Add DevOps staff to nagrestconf passwd file {{ nagrestconf_users_htpasswd }}
+  template: src="etc/nagios/htpasswd.j2" dest={{ nagrestconf_users_htpasswd }}
+  with_dict: "{{ users_list }}"
+
+- name: Remove empty lines from {{ nagios_users_htpasswd }}
+  lineinfile: dest={{ nagios_users_htpasswd }} regexp="^\s*$" state=absent
+
+- name: Remove empty line from {{ nagrestconf_users_htpasswd }}
+  lineinfile: dest={{ nagrestconf_users_htpasswd }} regexp="^\s*$" state=absent 
